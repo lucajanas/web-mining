@@ -276,6 +276,5 @@ def get_model_forecast_predictions(opt, X_test, is_optimizer=True):
     else:
         model = opt
         
-    y_pred = model.predict(X_test)
-    X_test['prediction'] = y_pred 
-    return X_test
+    y_pred = model.predict(X_test) 
+    return y_pred
