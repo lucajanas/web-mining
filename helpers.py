@@ -266,3 +266,16 @@ def get_model_forecast_results(opt, X_test, y_test, le_teams, is_optimizer=True)
     warnings.filterwarnings("ignore", message="`np.int` is a deprecated alias for the builtin `int`")
     result = get_team_metrics(X_test, y_test, pd.Series(y_pred), le_teams) 
     return result  
+
+
+
+def get_model_forecast_predictions(opt, X_test, is_optimizer=True):
+    
+    if is_optimizer:
+        model = opt.best_estimator_
+    else:
+        model = opt
+        
+    y_pred = model.predict(X_test)
+    X_test['prediction'] = y_pred 
+    return X_test
