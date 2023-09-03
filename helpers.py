@@ -403,3 +403,15 @@ def plot_best_model_per_club(df, column_to_sort, top_x=10, ascending=False, base
     plt.title(title)
     plt.show()
         
+
+
+def get_model_forecast_predictions(opt, X_test, is_optimizer=True):
+    
+    if is_optimizer:
+        model = opt.best_estimator_
+    else:
+        model = opt
+        
+    y_pred = model.predict(X_test) 
+    return y_pred
+
