@@ -1,6 +1,10 @@
 import pandas as pd
 import numpy as np
+import os
+import json
 import warnings
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 from sklearn.metrics import classification_report, accuracy_score,  balanced_accuracy_score
 
@@ -148,28 +152,36 @@ def get_team_metrics(X_test, y_test, y_pred, le_teams):
         if num_games > 0:
             report = classification_report(y_true_team, y_pred_team, output_dict=True)
             results[team] = {
-            'home_games': num_games,
-            'home_games_win':int(result_distribution.get(2, 0)),
-            'home_games_draw':int(result_distribution.get(1, 0)),
-            'home_games_loss':int(result_distribution.get(0, 0)),
-            'home_accuracy': round(accuracy_score(y_true_team, y_pred_team),round_precision),
-            'home_balanced_accuracy': round(balanced_accuracy_score(y_true_team, y_pred_team),round_precision),
-            'home_precision_class_0': round(report['0']['precision'],round_precision), # Für das jeweilige Team im Heim: Prognose auf Verlust 
-            'home_precision_class_1': round(report['1']['precision'],round_precision), # Für das jeweilige Team im Heim: Prognose auf Unentschieden 
-            'home_precision_class_2': round(report['2']['precision'],round_precision), # Für das jeweilige Team im Heim: Prognose auf Sieg
-            'home_recall_class_0': round(report['0']['recall'],round_precision),
-            'home_recall_class_1': round(report['1']['recall'],round_precision),
-            'home_recall_class_2': round(report['2']['recall'],round_precision),
-            'home_f1-score_class_0': round(report['0']['f1-score'],round_precision),
-            'home_f1-score_class_1': round(report['1']['f1-score'],round_precision),
-            'home_f1-score_class_2': round(report['2']['f1-score'],round_precision)
-        }
+                'home_games': num_games
+            }
+            
+            results[team]['home_games_win'] = int(result_distribution.get(2, 0))
+            results[team]['home_games_draw'] = int(result_distribution.get(1, 0))
+            results[team]['home_games_loss'] = int(result_distribution.get(0, 0))
+            results[team]['home_accuracy'] = round(accuracy_score(y_true_team, y_pred_team),round_precision)
+            results[team]['home_balanced_accuracy'] = round(balanced_accuracy_score(y_true_team, y_pred_team),round_precision)
+            results[team]['home_precision_class_0'] = round(report['0']['precision'],round_precision) # Für das jeweilige Team im Heim: Prognose auf Verlust 
+            if '1' in report:
+                results[team]['home_precision_class_1'] = round(report['1']['precision'],round_precision) # Für das jeweilige Team im Heim: Prognose auf Unentschieden 
+            results[team]['home_precision_class_2'] = round(report['2']['precision'],round_precision) # Für das jeweilige Team im Heim: Prognose auf Sieg
+            results[team]['home_recall_class_0'] = round(report['0']['recall'],round_precision)
+            if '1' in report:
+                results[team]['home_recall_class_1'] = round(report['1']['recall'],round_precision)
+            results[team]['home_recall_class_2'] = round(report['2']['recall'],round_precision)
+            results[team]['home_f1-score_class_0'] = round(report['0']['f1-score'],round_precision)
+            if '1' in report:
+                results[team]['home_f1-score_class_1'] = round(report['1']['f1-score'],round_precision)
+            results[team]['home_f1-score_class_2'] = round(report['2']['f1-score'],round_precision)
+        
+        else:
+            raise Exception("Number of games is 0")
             
         team_data = X_test_decoded[(X_test_decoded['AWAY_TEAM'] == team)]
         result_distribution = team_data['RESULT'].value_counts().sort_index()
         y_true_team = pd.to_numeric(team_data['RESULT'], errors='coerce').to_numpy()
         y_pred_team =  pd.to_numeric(team_data['PREDICTED_RESULT'], errors='coerce').to_numpy()
         num_games = len(team_data)
+        
         
         # Berechne die Away-Metriken
         if num_games > 0:
@@ -197,6 +209,9 @@ def get_team_metrics(X_test, y_test, y_pred, le_teams):
             results[team] ['games_win'] = results[team]['home_games_win'] + results[team] ['away_games_win']
             results[team] ['games_draw'] = results[team]['home_games_draw'] + results[team] ['away_games_draw']
             results[team] ['games_loss'] = results[team]['home_games_loss'] + results[team] ['away_games_loss']
+        else:
+            raise Exception("Number of games is 0")
+            
 
     return results
 
@@ -217,7 +232,7 @@ def get_elo_forecast_results(X_test, y_test, label_mapping_TEAM, PATH_ELO_CLUBS,
         
         elo = elo_rating(PATH_ELO_CLUBS, row['DATE'], home_team, away_team)
         if elo is None:
-            raise Exception("Kein Elo wert verfügbar")
+            raise Exception("No Elo available")
         
         if elo >= 0.51:
             prediction = HOME_TEAM_WIN
@@ -266,3 +281,125 @@ def get_model_forecast_results(opt, X_test, y_test, le_teams, is_optimizer=True)
     warnings.filterwarnings("ignore", message="`np.int` is a deprecated alias for the builtin `int`")
     result = get_team_metrics(X_test, y_test, pd.Series(y_pred), le_teams) 
     return result  
+
+
+def plot_sorted_vertical_bar(df, column_to_sort, base_color='Blues', ascending=False):
+    # Sortieren des DataFrames nach der gewünschten Spalte
+    df_sorted = df.sort_values(by=column_to_sort, ascending=ascending)
+    
+    # Erstellen des Balkendiagramms
+    plt.figure(figsize=(12, 8))
+    
+    x_pos = np.arange(len(df_sorted))
+    
+    # Farbpalette basierend auf dem übergebenen Grundfarbton
+    cmap = cm.get_cmap(base_color)
+    colors = [cmap(1 - i * 0.5 / len(df_sorted)) for i in range(len(df_sorted))]
+    
+    bars = plt.bar(x_pos, df_sorted[column_to_sort], color=colors)
+    
+    # Beschriftungen und Titel hinzufügen
+    plt.ylabel(column_to_sort)
+    plt.xlabel('Model')
+    
+    # Titel anpassen
+    title = f'Model Performance Based on {column_to_sort}'
+    column_lower = column_to_sort.lower()
+    if "class_0" in column_lower:
+        title += " (away win)"
+    elif "class_1" in column_lower:
+        title += " (draw)"
+    elif "class_2" in column_lower:
+        title += " (home win)"
+    
+    plt.title(title)
+    plt.xticks(x_pos, df_sorted['Model'], rotation=45)
+    
+    # Legende
+    #plt.legend(bars, df_sorted['Model'])
+    
+    # Textbeschriftungen für die Balken hinzufügen
+    for bar in bars:
+        yval = bar.get_height()
+        plt.text(bar.get_x() + bar.get_width()/2.0, yval, round(yval, 2), va='bottom')  # va: vertical alignment
+    
+    plt.tight_layout()
+    plt.show()
+    
+    
+def get_json_results_in_df(directory_path):
+    
+    list_total = []
+    list_clubs = []
+    
+    # Gehe durch alle Dateien im Verzeichnis
+    for filename in os.listdir(directory_path):
+        if filename.endswith('.json'):
+            # Modellname aus dem Dateinamen extrahieren
+            model_name = filename.split('.')[0]
+            model_name = model_name.replace("_results", "")
+            
+            # JSON-Datei lesen
+            with open(os.path.join(directory_path, filename), 'r') as f:
+                data = json.load(f)
+            
+            # Extrahieren der "Total_" Einträge
+            total_data = {k: v for k, v in data.items() if k.startswith('Total_')}
+            total_data['Model'] = model_name  # Spalte für den Modellnamen
+            list_total.append(total_data)
+            
+            # Extrahieren der Club-spezifischen Einträge
+            club_data = {k: v for k, v in data.items() if not k.startswith('Total_')}
+            for club, metrics in club_data.items():
+                metrics['Club'] = club  # Spalte für den Clubnamen
+                metrics['Model'] = model_name  # Spalte für den Modellnamen
+                list_clubs.append(metrics)
+
+    # Erstellen der DataFrames
+    df_total = pd.DataFrame(list_total)
+    df_clubs = pd.DataFrame(list_clubs)
+    
+    return df_total, df_clubs
+
+
+def plot_best_model_per_club(df, column_to_sort, top_x=10, ascending=False, base_color='Blues', game_columns=None):
+    # Gruppieren und Sortieren des DataFrames, und Auswahl der besten x Clubs
+    df = df.sort_values(by=[column_to_sort], ascending=ascending)
+    df_best_models = df.groupby('Club').first().reset_index()
+    df_best_models = df_best_models.sort_values(by=[column_to_sort], ascending=ascending).head(top_x)
+
+    plt.figure(figsize=(15, 10))
+
+    clubs = df_best_models['Club']
+    values = df_best_models[column_to_sort]
+    models = df_best_models['Model']
+
+    color_values = np.linspace(0.2, 1, top_x)[::-1]  # umgekehrte Farbordnung
+    colors = [plt.get_cmap(base_color)(i) for i in color_values]
+
+    bars = plt.bar(clubs, values, color=colors)
+    
+    for i, bar in enumerate(bars):
+        model_name = models.iloc[i]
+        club_name = clubs.iloc[i]
+        plt.text(bar.get_x() + bar.get_width()/2.0, bar.get_height(), f"{model_name}", ha='center', va='bottom')
+
+        # Anzahl der Spiele als Text im Balken
+        if game_columns:
+            game_count = df_best_models.loc[df_best_models['Club'] == club_name, game_columns].values[0]
+            plt.text(bar.get_x() + bar.get_width()/2.0, bar.get_height()/2, f"{game_count} games", ha='center', va='center', color='red', fontsize=14)
+
+    plt.xlabel('Club')
+    plt.ylabel(column_to_sort)
+
+    title = f'Top {top_x} Clubs Based on {column_to_sort}'
+    if "class_0" in column_to_sort.lower():
+        title += " (away win)"
+    elif "class_1" in column_to_sort.lower():
+        title += " (draw)"
+    elif "class_2" in column_to_sort.lower():
+        title += " (home win)"
+        
+    plt.title(title)
+    plt.show()
+        
