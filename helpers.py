@@ -324,6 +324,9 @@ def plot_sorted_vertical_bar(df, column_to_sort, base_color='Blues', ascending=F
         plt.text(bar.get_x() + bar.get_width()/2.0, yval, round(yval, 2), va='bottom')  # va: vertical alignment
     
     plt.tight_layout()
+    title = title.replace('(','_')
+    title = title.replace(')','_')
+    plt.savefig(f'./plots/{title}.jpeg')
     plt.show()
     
     
@@ -401,6 +404,9 @@ def plot_best_model_per_club(df, column_to_sort, top_x=10, ascending=False, base
         title += " (home win)"
         
     plt.title(title)
+    title = title.replace('(','_')
+    title = title.replace(')','_')
+    plt.savefig(f'./plots/{title}.jpeg')
     plt.show()
         
 
