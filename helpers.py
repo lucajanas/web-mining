@@ -303,14 +303,15 @@ def plot_sorted_vertical_bar(df, column_to_sort, base_color='Blues', ascending=F
     plt.xlabel('Model')
     
     # Titel anpassen
-    title = f'Model Performance Based on {column_to_sort}'
+    # title = f'Model Performance Based on {column_to_sort}' Modellleistung
+    title = f'Modellleistung für {column_to_sort}'
     column_lower = column_to_sort.lower()
     if "class_0" in column_lower:
-        title += " (away win)"
+        title += " (Auswärtssieg)"
     elif "class_1" in column_lower:
-        title += " (draw)"
+        title += " (Unentschieden)"
     elif "class_2" in column_lower:
-        title += " (home win)"
+        title += " (Heimsieg)"
     
     plt.title(title)
     plt.xticks(x_pos, df_sorted['Model'], rotation=45)
@@ -390,18 +391,27 @@ def plot_best_model_per_club(df, column_to_sort, top_x=10, ascending=False, base
         # Anzahl der Spiele als Text im Balken
         if game_columns:
             game_count = df_best_models.loc[df_best_models['Club'] == club_name, game_columns].values[0]
-            plt.text(bar.get_x() + bar.get_width()/2.0, bar.get_height()/2, f"{game_count} games", ha='center', va='center', color='red', fontsize=14)
+            plt.text(bar.get_x() + bar.get_width()/2.0, bar.get_height()/2, f"{game_count} Spiele", ha='center', va='center', color='red', fontsize=14)
 
     plt.xlabel('Club')
     plt.ylabel(column_to_sort)
 
-    title = f'Top {top_x} Clubs Based on {column_to_sort}'
+    # title = f'Top {top_x} Clubs Based on {column_to_sort}'
+    # title = f'Top {top_x} Teams fuer {column_to_sort}'
+    # if "class_0" in column_to_sort.lower():
+    #     title += " (away win)"
+    # elif "class_1" in column_to_sort.lower():
+    #     title += " (draw)"
+    # elif "class_2" in column_to_sort.lower():
+    #     title += " (home win)"
+        
+    title = f'Top {top_x} Teams für {column_to_sort}'
     if "class_0" in column_to_sort.lower():
-        title += " (away win)"
+        title += " (Auswaertssieg)"
     elif "class_1" in column_to_sort.lower():
-        title += " (draw)"
+        title += " (Unentschieden)"
     elif "class_2" in column_to_sort.lower():
-        title += " (home win)"
+        title += " (Heimsieg)"
         
     plt.title(title)
     title = title.replace('(','_')
